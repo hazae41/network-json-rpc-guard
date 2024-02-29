@@ -26,6 +26,9 @@ You can also create a `.env` or `.env.local` file if you're self-hosting
 
 Your Ethereum private key as a 0x-prefixed base16 string
 
+You must have a few dollars of gas on Gnosis chain
+- you can get $0.01 for free [here](https://stakely.io/en/faucet/gnosis-chain-xdai)
+
 e.g. `0x35609a4c7e0334d76e15d107c52ee4e9beab1199556cef78fd8624351c0e2c8c`
 
 #### `RPC_URL_HTTP` (required if you want to use HTTP)
