@@ -53,7 +53,7 @@ Connect to the proxy via HTTP with the following URL query parametes
 
 e.g. `http://localhost:8000/?session=22deac58-7e01-4ddb-b9c4-07c73a32d1b5`
 
-## WebSocket
+### WebSocket
 
 Connect to the proxy via WebSocket with the following URL query parameters
 - `session` -> A unique private random unguessable string for your session (e.g. `crypto.randomUUID()`)
