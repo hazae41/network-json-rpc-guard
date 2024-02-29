@@ -242,19 +242,15 @@ async function onHttpRequest(request: Request) {
       return new Response("Payment Required", { status: 402 })
 
     const response = await fetch(target, { method: "POST", headers, body })
+    const text = await response.text()
 
-    const contentLength = response.headers.get("content-length")
-
-    if (contentLength == null)
-      return new Response("Bad Gateway", { status: 502 })
-
-    balanceBigInt = balanceBigInt - BigInt(contentLength)
+    balanceBigInt = balanceBigInt - BigInt(text.length)
     balanceByUuid.set(session, balanceBigInt)
 
     if (balanceBigInt < 0n)
       return new Response("Payment Required", { status: 402 })
 
-    return response
+    return new Response(text, { status: response.status })
   }
 
   const target = Deno.env.get("RPC_URL_WS")
