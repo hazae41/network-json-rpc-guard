@@ -28,7 +28,7 @@ Your Ethereum private key as a 0x-prefixed base16 string
 
 e.g. `0x35609a4c7e0334d76e15d107c52ee4e9beab1199556cef78fd8624351c0e2c8c`
 
-#### `RPC_URL_HTTP` (optional)
+#### `RPC_URL_HTTP` (required if you want to use HTTP)
 
 Your JSON-RPC endpoint for HTTP requests
 
@@ -36,7 +36,7 @@ You can include a private token in the url
 
 e.g. `https://mainnet.infura.io/v3/b6bf7d3508c941499b10025c0776eaf8`
 
-#### `RPC_URL_WS` (optional)
+#### `RPC_URL_WS` (required if you want to use WebSocket)
 
 Your JSON-RPC endpoint for WebSocket requests
 
