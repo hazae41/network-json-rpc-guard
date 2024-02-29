@@ -87,6 +87,5 @@ while (true) {
     balanceBigInt += await requestOrThrow<string>({ method: "net_tip", params: [secretZeroHex] }, false).then(r => BigInt(r.unwrap()))
   }
 
-  while (true)
-    console.log(await requestOrThrow<unknown>({ method: "eth_blockNumber", params: [] }))
+  console.log(await requestOrThrow<unknown>({ method: "eth_blockNumber", params: [] }))
 }
