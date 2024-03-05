@@ -262,16 +262,19 @@ export async function serve(params: {
       if (balanceBigInt < 0n)
         return new Response("Payment Required", { status: 402 })
 
-      const response = await fetch(target, { method: "POST", headers, body })
-      const text = await response.text()
+      {
+        const response = await fetch(target, { method: "POST", headers, body })
+        const text = await response.text()
 
-      balanceBigInt = balanceBigInt - BigInt(text.length)
-      balanceByUuid.set(session, balanceBigInt)
+        let [balanceBigInt = 0n] = [balanceByUuid.get(session)]
+        balanceBigInt = balanceBigInt - BigInt(text.length)
+        balanceByUuid.set(session, balanceBigInt)
 
-      if (balanceBigInt < 0n)
-        return new Response("Payment Required", { status: 402 })
+        if (balanceBigInt < 0n)
+          return new Response("Payment Required", { status: 402 })
 
-      return new Response(text, { status: response.status })
+        return new Response(text, { status: response.status })
+      }
     }
 
     const target = rpcUrlWs
