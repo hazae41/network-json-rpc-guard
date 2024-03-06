@@ -1,186 +1,72 @@
 // deno-lint-ignore-file no-empty require-await
 import * as Dotenv from "https://deno.land/std@0.217.0/dotenv/mod.ts";
 import { Future } from "npm:@hazae41/future@1.0.3";
-import { RpcCounter, RpcErr, RpcError, RpcInvalidParamsError, RpcOk, RpcRequest, RpcRequestInit, RpcRequestPreinit, RpcResponse, RpcResponseInit } from "npm:@hazae41/jsonrpc@1.0.5";
+import { RpcErr, RpcError, RpcInvalidParamsError, RpcOk, RpcRequest, RpcRequestInit } from "npm:@hazae41/jsonrpc@1.0.5";
 import { Mutex } from "npm:@hazae41/mutex@1.2.12";
 import { Memory, NetworkMixin, base16_decode_mixed, base16_encode_lower, initBundledOnce } from "npm:@hazae41/network-bundle@1.2.1";
 import { None, Some } from "npm:@hazae41/option@1.0.27";
 import * as Ethers from "npm:ethers";
+import { warn } from "./libs/ethers/mod.ts";
+import { NetworkSignaler } from "./libs/network/mod.ts";
 import Abi from "./token.abi.json" with { type: "json" };
 
 export async function main() {
   const envPath = new URL(import.meta.resolve("./.env.local")).pathname
 
   const {
-    SELF_URL_WS = Deno.env.get("SELF_URL_WS"),
-    SELF_URL_HTTP = Deno.env.get("SELF_URL_HTTP"),
-    SERVER_URL_WS = Deno.env.get("SERVER_URL_WS"),
-    SERVER_URL_HTTP = Deno.env.get("SERVER_URL_HTTP"),
-    SERVER_RPC_METHODS = Deno.env.get("SERVER_RPC_METHODS"),
+    SIGNALER_URL_LIST = Deno.env.get("SIGNALER_URL_LIST"),
+    SIGNALED_WS_URL = Deno.env.get("SIGNALED_WS_URL"),
+    SIGNALED_HTTP_URL = Deno.env.get("SIGNALED_HTTP_URL"),
+
+    ENDPOINT_WS_URL = Deno.env.get("ENDPOINT_WS_URL"),
+    ENDPOINT_HTTP_URL = Deno.env.get("ENDPOINT_HTTP_URL"),
+    ENDPOINT_PROTOCOL_LIST = Deno.env.get("ENDPOINT_PROTOCOL_LIST"),
+
     PRIVATE_KEY_ZERO_HEX = Deno.env.get("PRIVATE_KEY_ZERO_HEX"),
   } = await Dotenv.load({ envPath, examplePath: null })
 
-  if (SELF_URL_WS != null && SERVER_URL_WS == null)
-    throw new Error("SERVER_URL_WS is not set")
-  if (SELF_URL_HTTP != null && SERVER_URL_HTTP == null)
-    throw new Error("SERVER_URL_HTTP is not set")
-  if (SERVER_RPC_METHODS == null)
-    throw new Error("SERVER_RPC_METHODS is not set")
+  if (SIGNALER_URL_LIST == null)
+    throw new Error("SIGNALER_URL_LIST is not set")
+  if (SIGNALED_WS_URL != null && ENDPOINT_WS_URL == null)
+    throw new Error("ENDPOINT_WS_URL is not set")
+  if (SIGNALED_HTTP_URL != null && ENDPOINT_HTTP_URL == null)
+    throw new Error("ENDPOINT_HTTP_URL is not set")
+  if (ENDPOINT_PROTOCOL_LIST == null)
+    throw new Error("ENDPOINT_PROTOCOL_LIST is not set")
   if (PRIVATE_KEY_ZERO_HEX == null)
     throw new Error("PRIVATE_KEY_ZERO_HEX is not set")
 
-  const selfUrlWs = SELF_URL_WS
-  const selfUrlHttp = SELF_URL_HTTP
+  const signalerUrlList = SIGNALER_URL_LIST.split(",")
 
-  const serverUrlWs = SERVER_URL_WS
-  const serverUrlHttp = SERVER_URL_HTTP
-  const serverRpcMethods = SERVER_RPC_METHODS.split(",")
+  const signaledWsUrl = SIGNALED_WS_URL
+  const signaledHttpUrl = SIGNALED_HTTP_URL
+
+  const endpointWsUrl = ENDPOINT_WS_URL
+  const endpointHttpUrl = ENDPOINT_HTTP_URL
+  const endpointProtocolList = ENDPOINT_PROTOCOL_LIST.split(",")
 
   const privateKeyZeroHex = PRIVATE_KEY_ZERO_HEX
 
-  return await serve({ selfUrlWs, selfUrlHttp, serverUrlWs, serverUrlHttp, serverRpcMethods, privateKeyZeroHex })
+  return await serve({ signalerUrlList, signaledWsUrl, signaledHttpUrl, endpointWsUrl, endpointHttpUrl, endpointProtocolList, privateKeyZeroHex })
 }
 
-export async function signal(url: string, params: { selfUrlWs?: string, selfUrlHttp?: string, serverRpcMethods: string[] }) {
-  const { selfUrlWs, selfUrlHttp, serverRpcMethods } = params
+export interface ServerParams {
+  readonly signalerUrlList: string[],
 
-  while (true) {
-    try {
-      const socket = new WebSocket(`${url}/?session=${crypto.randomUUID()}`)
+  readonly signaledWsUrl?: string,
+  readonly signaledHttpUrl?: string,
 
-      await new Promise((ok, err) => {
-        socket.addEventListener("open", ok)
-        socket.addEventListener("error", err)
-      })
+  readonly endpointWsUrl?: string,
+  readonly endpointHttpUrl?: string,
+  readonly endpointProtocolList: string[],
 
-      const counter = new RpcCounter()
-      const events = new EventTarget()
-
-      let balanceBigInt = 0n
-
-      const onRequest = (request: RpcRequest<unknown>) => {
-        events.dispatchEvent(new CustomEvent("request", { detail: request }))
-      }
-
-      const onResponse = (response: RpcResponse<unknown>) => {
-        events.dispatchEvent(new CustomEvent("response", { detail: response }))
-      }
-
-      const onMessage = (message: string) => {
-        const requestOrResponse = JSON.parse(message) as RpcRequest<unknown> | RpcResponse
-
-        if ("method" in requestOrResponse)
-          return onRequest(requestOrResponse)
-
-        return onResponse(requestOrResponse)
-      }
-
-      socket.addEventListener("message", (event) => {
-        if (typeof event.data !== "string")
-          return
-        return onMessage(event.data)
-      })
-
-      const requestOrThrow = async <T>(preinit: RpcRequestPreinit<unknown>, price: bigint) => {
-        const request = counter.prepare(preinit)
-        const message = JSON.stringify(request)
-
-        balanceBigInt -= price
-
-        while (balanceBigInt < 0n)
-          await net_tip()
-
-        socket.send(message)
-
-        return await new Promise<RpcResponse<T>>(ok => {
-          const onResponse = async (event: Event) => {
-            const response = (event as CustomEvent<RpcResponseInit<T>>).detail
-
-            if (response.id !== request.id)
-              return
-            ok(RpcResponse.from(response))
-          }
-
-          events.addEventListener("response", onResponse)
-        })
-      }
-
-      const net_tip = async () => {
-        const {
-          chainIdString,
-          contractZeroHex,
-          receiverZeroHex,
-          nonceZeroHex,
-          minimumZeroHex
-        } = await requestOrThrow<{
-          chainIdString: string,
-          contractZeroHex: string,
-          receiverZeroHex: string,
-          nonceZeroHex: string,
-          minimumZeroHex: string
-        }>({
-          method: "net_get"
-        }, 0n).then(r => r.unwrap())
-
-        const minimumBigInt = BigInt(minimumZeroHex)
-
-        if (minimumBigInt > (2n ** 24n))
-          throw new Error("Minimum too high")
-
-        const chainIdBase16 = Number(chainIdString).toString(16).padStart(64, "0")
-        const chainIdMemory = base16_decode_mixed(chainIdBase16)
-
-        const contractBase16 = contractZeroHex.slice(2).padStart(64, "0")
-        const contractMemory = base16_decode_mixed(contractBase16)
-
-        const receiverBase16 = receiverZeroHex.slice(2).padStart(64, "0")
-        const receiverMemory = base16_decode_mixed(receiverBase16)
-
-        const nonceBase16 = nonceZeroHex.slice(2).padStart(64, "0")
-        const nonceMemory = base16_decode_mixed(nonceBase16)
-
-        const mixinStruct = new NetworkMixin(chainIdMemory, contractMemory, receiverMemory, nonceMemory)
-
-        const minimumBase16 = minimumZeroHex.slice(2).padStart(64, "0")
-        const minimumMemory = base16_decode_mixed(minimumBase16)
-
-        const generatedStruct = mixinStruct.generate(minimumMemory)
-
-        const secretMemory = generatedStruct.to_secret()
-        const secretBase16 = base16_encode_lower(secretMemory)
-        const secretZeroHex = `0x${secretBase16}`
-
-        balanceBigInt += await requestOrThrow<string>({ method: "net_tip", params: [secretZeroHex] }, 0n).then(r => BigInt(r.unwrap()))
-      }
-
-      if (selfUrlWs != null)
-        await requestOrThrow({ method: "net_signal", params: [crypto.randomUUID(), { url: selfUrlWs, protocol: "json-rpc-over-wss", methods: serverRpcMethods }] }, (20n ** 20n))
-      if (selfUrlHttp != null)
-        await requestOrThrow({ method: "net_signal", params: [crypto.randomUUID(), { url: selfUrlHttp, protocol: "json-rpc-over-https", methods: serverRpcMethods }] }, (20n ** 20n))
-
-      await new Promise(ok => socket.addEventListener("close", ok))
-      continue
-    } catch (e: unknown) {
-      console.warn(`Could not signal to ${url}`, e)
-      await new Promise(ok => setTimeout(ok, 5000))
-      continue
-    }
-  }
+  readonly privateKeyZeroHex: string,
 }
 
-export async function serve(params: {
-  selfUrlWs?: string,
-  selfUrlHttp?: string,
-  serverUrlHttp?: string,
-  serverUrlWs?: string,
-  serverRpcMethods: string[],
-  privateKeyZeroHex: string,
-}) {
-  const { selfUrlWs, selfUrlHttp, serverUrlWs, serverUrlHttp, serverRpcMethods, privateKeyZeroHex } = params
+export async function serve(params: ServerParams) {
+  const { signalerUrlList, signaledWsUrl, signaledHttpUrl, endpointWsUrl, endpointHttpUrl, endpointProtocolList, privateKeyZeroHex } = params
 
   await initBundledOnce()
-
-  signal("wss://signal.node0.hazae41.me", { selfUrlWs, selfUrlHttp, serverRpcMethods }).catch(console.error)
 
   const chainIdString = "100"
   const contractZeroHex = "0x0a4d5EFEa910Ea5E39be428A3d57B80BFAbA52f4"
@@ -218,6 +104,56 @@ export async function serve(params: {
   let minimumBase16 = minimumBigInt.toString(16).padStart(64, "0")
   let minimumZeroHex = `0x${minimumBase16}`
 
+  const claim = async (pendingTotalValueBigInt2: bigint, pendingSecretZeroHexArray2: string[]) => {
+    const backpressure = mutex.locked
+
+    if (backpressure) {
+      minimumBigInt = minimumBigInt * 2n
+      minimumBase16 = minimumBigInt.toString(16).padStart(64, "0")
+      minimumZeroHex = `0x${minimumBase16}`
+
+      console.log(`Increasing minimum to ${minimumBigInt.toString()} wei`)
+    }
+
+    await mutex.lock(async () => {
+      if (backpressure) {
+        minimumBigInt = minimumBigInt / 2n
+        minimumBase16 = minimumBigInt.toString(16).padStart(64, "0")
+        minimumZeroHex = `0x${minimumBase16}`
+
+        console.log(`Decreasing minimum to ${minimumBigInt.toString()} wei`)
+      }
+
+      const nonce = await wallet.getNonce("latest")
+
+      while (true) {
+        const signal = AbortSignal.timeout(15000)
+        const future = new Future<never>()
+
+        const onAbort = () => future.reject(new Error("Aborted"))
+
+        try {
+          signal.addEventListener("abort", onAbort, { passive: true })
+
+          console.log(`Claiming ${pendingTotalValueBigInt2.toString()} wei`)
+          const responsePromise = contract.claim(nonceZeroHex, pendingSecretZeroHexArray2, { nonce })
+          const response = await Promise.race([responsePromise, future.promise])
+
+          console.log(`Waiting for ${response.hash} on ${response.nonce}`)
+          const receipt = await Promise.race([response.wait(), future.promise])
+
+          return receipt
+        } catch (e: unknown) {
+          if (signal.aborted)
+            continue
+          throw e
+        } finally {
+          signal.removeEventListener("abort", onAbort)
+        }
+      }
+    })
+  }
+
   const balanceByUuid = new Map<string, bigint>()
 
   const onHttpRequest = async (request: Request) => {
@@ -228,7 +164,7 @@ export async function serve(params: {
     if (session == null)
       return new Response("Bad Request", { status: 400 })
 
-    const onRequestOrNoneOrSomeErr = async (request: RpcRequestInit) => {
+    const onRequest = async (request: RpcRequestInit) => {
       try {
         const option = await routeOrNone(request)
 
@@ -284,85 +220,6 @@ export async function serve(params: {
       pendingSecretZeroHexArray.push(secretZeroHex)
       pendingTotalValueBigInt += valueBigInt
 
-      const claim = async (pendingTotalValueBigInt: bigint, pendingSecretZeroHexArray: string[]) => {
-        const backpressure = mutex.locked
-
-        if (backpressure) {
-          minimumBigInt = minimumBigInt * 2n
-          minimumBase16 = minimumBigInt.toString(16).padStart(64, "0")
-          minimumZeroHex = `0x${minimumBase16}`
-
-          console.log(`Increasing minimum to ${minimumBigInt.toString()} wei`)
-        }
-
-        await mutex.lock(async () => {
-          if (backpressure) {
-            minimumBigInt = minimumBigInt / 2n
-            minimumBase16 = minimumBigInt.toString(16).padStart(64, "0")
-            minimumZeroHex = `0x${minimumBase16}`
-
-            console.log(`Decreasing minimum to ${minimumBigInt.toString()} wei`)
-          }
-
-          const nonce = await wallet.getNonce("latest")
-
-          while (true) {
-            const signal = AbortSignal.timeout(15000)
-            const future = new Future<never>()
-
-            const onAbort = () => future.reject(new Error("Aborted"))
-
-            try {
-              signal.addEventListener("abort", onAbort, { passive: true })
-
-              console.log(`Claiming ${pendingTotalValueBigInt.toString()} wei`)
-              const responsePromise = contract.claim(nonceZeroHex, pendingSecretZeroHexArray, { nonce })
-              const response = await Promise.race([responsePromise, future.promise])
-
-              console.log(`Waiting for ${response.hash} on ${response.nonce}`)
-              const receipt = await Promise.race([response.wait(), future.promise])
-
-              return receipt
-            } catch (e: unknown) {
-              if (signal.aborted)
-                continue
-              throw e
-            } finally {
-              signal.removeEventListener("abort", onAbort)
-            }
-          }
-        })
-      }
-
-      const warn = (e: unknown) => {
-        if (e == null) {
-          console.error("ERROR", e)
-          return
-        }
-
-        if (typeof e !== "object") {
-          console.error("ERROR", e)
-          return
-        }
-
-        if ("info" in e) {
-          warn(e.info)
-          return
-        }
-
-        if ("error" in e) {
-          warn(e.error)
-          return
-        }
-
-        if ("message" in e) {
-          console.error("ERROR", e.message)
-          return
-        }
-
-        console.error("ERROR", e)
-      }
-
       if (pendingSecretZeroHexArray.length > 640) {
         claim(pendingTotalValueBigInt, pendingSecretZeroHexArray).catch(warn)
 
@@ -374,7 +231,7 @@ export async function serve(params: {
     }
 
     if (request.headers.get("upgrade") !== "websocket") {
-      const target = serverUrlHttp
+      const target = endpointHttpUrl
 
       if (target == null)
         return new Response("Bad Gateway", { status: 502 })
@@ -389,7 +246,7 @@ export async function serve(params: {
 
       const data = RpcRequest.from(await request.json())
 
-      const option = await onRequestOrNoneOrSomeErr(data)
+      const option = await onRequest(data)
 
       if (option.isSome()) {
         const headers = { "content-type": "application/json" }
@@ -423,7 +280,7 @@ export async function serve(params: {
       }
     }
 
-    const target = serverUrlWs
+    const target = endpointWsUrl
 
     if (target == null)
       return new Response("Bad Gateway", { status: 502 })
@@ -453,7 +310,7 @@ export async function serve(params: {
         await open
 
         const request = JSON.parse(message) as RpcRequestInit
-        const option = await onRequestOrNoneOrSomeErr(request)
+        const option = await onRequest(request)
 
         if (option.isSome()) {
           client.send(JSON.stringify(option.get()))
@@ -505,12 +362,18 @@ export async function serve(params: {
     })
 
     client.addEventListener("close", () => closeOrIgnore())
-    server.addEventListener("close", (e) => {
-      console.error(e)
-      closeOrIgnore()
-    })
+    server.addEventListener("close", () => closeOrIgnore())
 
     return upgrade.response
+  }
+
+  for (const signalerUrl of signalerUrlList) {
+    const signaler = new NetworkSignaler(signalerUrl)
+
+    if (signaledWsUrl != null)
+      signaler.signalOrThrow(crypto.randomUUID(), { protocols: endpointProtocolList.map(proto => `wss:json-rpc:pay-by-char:${proto}`), location: signaledWsUrl, price: 1n.toString() }).catch(console.warn)
+    if (signaledHttpUrl != null)
+      signaler.signalOrThrow(crypto.randomUUID(), { protocols: endpointProtocolList.map(proto => `https:json-rpc:pay-by-char:${proto}`), location: signaledHttpUrl, price: 1n.toString() }).catch(console.warn)
   }
 
   return { onHttpRequest }

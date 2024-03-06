@@ -113,7 +113,7 @@ This account must have some xDAI (gas on Gnosis chain).
 
 e.g. `0x35609a4c7e0334d76e15d107c52ee4e9beab1199556cef78fd8624351c0e2c8c`
 
-#### `RPC_URL_HTTP` (required if you want to use HTTP)
+#### `ENDPOINT_HTTP_URL` (required if you want to support HTTP)
 
 Your JSON-RPC endpoint for HTTP requests
 
@@ -121,13 +121,19 @@ You can include a private token in the url
 
 e.g. `https://mainnet.infura.io/v3/b6bf7d3508c941499b10025c0776eaf8`
 
-#### `RPC_URL_WS` (required if you want to use WebSocket)
+#### `ENDPOINT_WS_URL` (required if you want to support WebSocket)
 
 Your JSON-RPC endpoint for WebSocket requests
 
 You can include a private token in the url
 
 e.g. `wss://mainnet.infura.io/ws/v3/b6bf7d3508c941499b10025c0776eaf8`
+
+#### `ENDPOINT_METHOD_LIST` (required)
+
+A comma-separated list of JSON-RPC methods that your endpoint supports
+
+e.g. `eth_call,eth_chainId,eth_estimateGas,eth_gasPrice,eth_getBalance,eth_getBlockByNumber,eth_getBlockTransactionCountByNumber,eth_getCode,eth_getLogs,eth_getStorageAt,eth_getTransactionByHash,eth_getTransactionCount,eth_getTransactionReceipt,eth_sendRawTransaction`
 
 ## Protocol
 
