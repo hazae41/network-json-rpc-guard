@@ -1,3 +1,4 @@
+// deno-lint-ignore-file require-await
 import { Future } from "npm:@hazae41/future@1.0.3";
 import { RpcCounter, RpcRequest, RpcRequestPreinit, RpcResponse, RpcResponseInit } from "npm:@hazae41/jsonrpc@1.0.5";
 import { Mutex } from "npm:@hazae41/mutex@1.2.12";
@@ -227,7 +228,7 @@ export class NetworkSignaler {
         }
       } catch (e: unknown) {
         console.warn(`Could not connect to ${this.url}`, e)
-        await new Promise(ok => setTimeout(ok, 5000))
+        await new Promise(ok => setTimeout(ok, 60 * 1000))
         continue
       }
     }
