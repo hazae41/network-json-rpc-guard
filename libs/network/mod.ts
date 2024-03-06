@@ -186,7 +186,7 @@ export class NetworkSignaler {
   async start() {
     while (true) {
       try {
-        const inner = await WebSockets.openOrThrow(`${this.url}/?session=${this.#session.uuid}`)
+        const inner = await WebSockets.openOrThrow(`${this.url}?session=${this.#session.uuid}`)
 
         await this.#mutex.lock(async () => {
           const socket = new PricePerRequestNetworkSocket(this.#session, inner)
@@ -228,7 +228,7 @@ export class NetworkSignaler {
         }
       } catch (e: unknown) {
         console.warn(`Could not connect to ${this.url}`, e)
-        await new Promise(ok => setTimeout(ok, 60 * 1000))
+        await new Promise(ok => setTimeout(ok, 15 * 1000))
         continue
       }
     }
