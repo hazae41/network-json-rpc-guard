@@ -129,11 +129,38 @@ You can include a private token in the url
 
 e.g. `wss://mainnet.infura.io/ws/v3/b6bf7d3508c941499b10025c0776eaf8`
 
-#### `ENDPOINT_METHOD_LIST` (required)
+#### `ENDPOINT_PROTOCOL_LIST` (required)
 
-A comma-separated list of JSON-RPC methods that your endpoint supports
+A comma-separated list of JSON-RPC protocols that your endpoint supports
 
-e.g. `eth_call,eth_chainId,eth_estimateGas,eth_gasPrice,eth_getBalance,eth_getBlockByNumber,eth_getBlockTransactionCountByNumber,eth_getCode,eth_getLogs,eth_getStorageAt,eth_getTransactionByHash,eth_getTransactionCount,eth_getTransactionReceipt,eth_sendRawTransaction`
+This is usually the RPC method prefix, like
+- Ethereum Mainnet -> `eth_` on chainId `1` -> `eth:1`
+- Gnosis chain -> `eth_` on chainId `100` -> `eth:100`
+- Near Mainnet -> `near:mainnet`
+- Solana Mainnet -> `solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp`
+- Tenderly-like on Ethereum Mainnet -> `tenderly_` on chainId `1` -> `tenderly:1`
+
+e.g. `eth:1,tenderly:1` 
+
+#### `SIGNALER_URL_LIST` (recommended)
+
+A comma-separated list of signaler url in order to publish your node there and be on the market
+
+This is usually a `wss:` url
+
+e.g. `wss://signal.node0.hazae41.me`
+
+#### `SIGNALED_HTTP_URL` (required if you want to support HTTP)
+
+The public url for contacting your node over HTTP(S)
+
+e.g. `https://myrpc.example.com` or `https://something.render.com`
+
+#### `SIGNALED_WS_URL` (required if you want to support WebSocket)
+
+The public url for contacting your node over WebSocket
+
+e.g. `wss://myrpc.example.com` or `wss://something.render.com`
 
 ## Protocol
 
@@ -142,14 +169,14 @@ e.g. `eth_call,eth_chainId,eth_estimateGas,eth_gasPrice,eth_getBalance,eth_getBl
 Connect to the proxy via HTTP with the following URL query parametes
 - `session` -> A unique private random unguessable string for your session (e.g. `crypto.randomUUID()`)
 
-e.g. `http://localhost:8000/?session=22deac58-7e01-4ddb-b9c4-07c73a32d1b5`
+e.g. `https://rpc.example.com/?session=22deac58-7e01-4ddb-b9c4-07c73a32d1b5`
 
 ### WebSocket
 
 Connect to the proxy via WebSocket with the following URL query parameters
 - `session` -> A unique private random unguessable string for your session (e.g. `crypto.randomUUID()`)
 
-e.g. `ws://localhost:8000/?session=22deac58-7e01-4ddb-b9c4-07c73a32d1b5`
+e.g. `wss://rpc.example.com/?session=22deac58-7e01-4ddb-b9c4-07c73a32d1b5`
 
 ### Price
 

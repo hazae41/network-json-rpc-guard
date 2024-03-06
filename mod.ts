@@ -10,19 +10,19 @@ import { warn } from "./libs/ethers/mod.ts";
 import { NetworkSignaler } from "./libs/network/mod.ts";
 import Abi from "./token.abi.json" with { type: "json" };
 
-export async function main() {
+export async function main(prefix = "") {
   const envPath = new URL(import.meta.resolve("./.env.local")).pathname
 
   const {
-    SIGNALER_URL_LIST = Deno.env.get("SIGNALER_URL_LIST"),
-    SIGNALED_WS_URL = Deno.env.get("SIGNALED_WS_URL"),
-    SIGNALED_HTTP_URL = Deno.env.get("SIGNALED_HTTP_URL"),
+    SIGNALER_URL_LIST = Deno.env.get(prefix + "SIGNALER_URL_LIST"),
+    SIGNALED_WS_URL = Deno.env.get(prefix + "SIGNALED_WS_URL"),
+    SIGNALED_HTTP_URL = Deno.env.get(prefix + "SIGNALED_HTTP_URL"),
 
-    ENDPOINT_WS_URL = Deno.env.get("ENDPOINT_WS_URL"),
-    ENDPOINT_HTTP_URL = Deno.env.get("ENDPOINT_HTTP_URL"),
-    ENDPOINT_PROTOCOL_LIST = Deno.env.get("ENDPOINT_PROTOCOL_LIST"),
+    ENDPOINT_WS_URL = Deno.env.get(prefix + "ENDPOINT_WS_URL"),
+    ENDPOINT_HTTP_URL = Deno.env.get(prefix + "ENDPOINT_HTTP_URL"),
+    ENDPOINT_PROTOCOL_LIST = Deno.env.get(prefix + "ENDPOINT_PROTOCOL_LIST"),
 
-    PRIVATE_KEY_ZERO_HEX = Deno.env.get("PRIVATE_KEY_ZERO_HEX"),
+    PRIVATE_KEY_ZERO_HEX = Deno.env.get(prefix + "PRIVATE_KEY_ZERO_HEX"),
   } = await Dotenv.load({ envPath, examplePath: null })
 
   if (SIGNALER_URL_LIST == null)
