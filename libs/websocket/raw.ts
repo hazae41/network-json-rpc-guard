@@ -1,3 +1,4 @@
+// deno-lint-ignore-file no-explicit-any
 import { Future } from "npm:@hazae41/future@1.0.3";
 
 export async function openOrThrow(url: string) {
@@ -8,8 +9,8 @@ export async function openOrThrow(url: string) {
     future.resolve()
   }
 
-  const onError = (event: Event) => {
-    future.reject(new Error("Errored", { cause: event }))
+  const onError = (event: any) => {
+    future.reject(new Error("Errored", { cause: event.error }))
   }
 
   const onClose = (event: CloseEvent) => {
