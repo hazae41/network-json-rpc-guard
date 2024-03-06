@@ -154,13 +154,13 @@ e.g. `wss://signal.node0.hazae41.me`
 
 The public url for contacting your node over HTTP(S)
 
-e.g. `https://myrpc.example.com` or `https://something.render.com`
+e.g. `https://myrpc.example.com` or `https://something.onrender.com`
 
 #### `SIGNALED_WS_URL` (required if you want to support WebSocket)
 
 The public url for contacting your node over WebSocket
 
-e.g. `wss://myrpc.example.com` or `wss://something.render.com`
+e.g. `wss://myrpc.example.com` or `wss://something.onrender.com`
 
 ## Protocol
 
