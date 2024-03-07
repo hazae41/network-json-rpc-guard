@@ -192,10 +192,10 @@ export class NetworkSignaler {
           const socket = new PricePerRequestNetworkSocket(this.#session, inner)
 
           for (const [uuid, params] of this.#signals)
-            await socket.requestOrThrow<void>({
+            socket.requestOrThrow<void>({
               method: "net_signal",
               params: [uuid, params]
-            }, (2n ** 20n)).then(r => r.unwrap())
+            }, (2n ** 20n)).then(r => r.unwrap()).catch(console.warn)
 
           this.#socket = socket
 
@@ -234,17 +234,17 @@ export class NetworkSignaler {
     }
   }
 
-  async signalOrThrow(uuid: string, params: unknown) {
+  async signal(uuid: string, params: unknown) {
     await this.#mutex.lock(async () => {
       this.#signals.set(uuid, params)
 
       if (this.#socket == null)
         return
 
-      await this.#socket.requestOrThrow<void>({
+      this.#socket.requestOrThrow<void>({
         method: "net_signal",
         params: [uuid, params]
-      }, (2n ** 20n)).then(r => r.unwrap())
+      }, (2n ** 20n)).then(r => r.unwrap()).catch(console.warn)
     })
   }
 

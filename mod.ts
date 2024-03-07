@@ -28,16 +28,15 @@ export async function main(prefix = "") {
   if (SIGNALER_URL_LIST == null)
     throw new Error("SIGNALER_URL_LIST is not set")
   if (SIGNALED_WS_URL != null && ENDPOINT_WS_URL == null)
-    throw new Error("ENDPOINT_WS_URL is not set")
+    throw new Error("SIGNALED_WS_URL is set but ENDPOINT_WS_URL is not set")
   if (SIGNALED_HTTP_URL != null && ENDPOINT_HTTP_URL == null)
-    throw new Error("ENDPOINT_HTTP_URL is not set")
+    throw new Error("SIGNALED_HTTP_URL is set but ENDPOINT_HTTP_URL is not set")
   if (ENDPOINT_PROTOCOL_LIST == null)
     throw new Error("ENDPOINT_PROTOCOL_LIST is not set")
   if (PRIVATE_KEY_ZERO_HEX == null)
     throw new Error("PRIVATE_KEY_ZERO_HEX is not set")
 
   const signalerUrlList = SIGNALER_URL_LIST.split(",")
-
   const signaledWsUrl = SIGNALED_WS_URL
   const signaledHttpUrl = SIGNALED_HTTP_URL
 
@@ -52,7 +51,6 @@ export async function main(prefix = "") {
 
 export interface ServerParams {
   readonly signalerUrlList: string[],
-
   readonly signaledWsUrl?: string,
   readonly signaledHttpUrl?: string,
 
@@ -371,9 +369,18 @@ export async function serve(params: ServerParams) {
     const signaler = new NetworkSignaler(signalerUrl)
 
     if (signaledWsUrl != null)
-      signaler.signalOrThrow(crypto.randomUUID(), { protocols: endpointProtocolList.map(proto => `wss:json-rpc:pay-by-char:${proto}`), location: signaledWsUrl, price: 1n.toString() }).catch(console.warn)
+      signaler.signal(crypto.randomUUID(), {
+        protocols: [`wss:string:json-rpc:net`, ...endpointProtocolList.map(proto => `wss:string:json-rpc:pay-by-char:(pay-by-char|${proto})`)],
+        location: signaledWsUrl,
+        price: 1n.toString()
+      }).catch(console.warn)
+
     if (signaledHttpUrl != null)
-      signaler.signalOrThrow(crypto.randomUUID(), { protocols: endpointProtocolList.map(proto => `https:json-rpc:pay-by-char:${proto}`), location: signaledHttpUrl, price: 1n.toString() }).catch(console.warn)
+      signaler.signal(crypto.randomUUID(), {
+        protocols: [`https:json-rpc:net`, ...endpointProtocolList.map(proto => `https:json-rpc:(pay-by-char|${proto})`)],
+        location: signaledHttpUrl,
+        price: 1n.toString()
+      }).catch(console.warn)
   }
 
   return { onHttpRequest }
