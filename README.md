@@ -131,19 +131,6 @@ You can include a private token in the url
 
 e.g. `wss://mainnet.infura.io/ws/v3/b6bf7d3508c941499b10025c0776eaf8`
 
-#### `ENDPOINT_PROTOCOL_LIST` (required)
-
-A comma-separated list of JSON-RPC protocols that your endpoint supports
-
-This is usually the RPC method prefix, like
-- Ethereum Mainnet -> `eth_` on chainId `1` -> `eth:1`
-- Gnosis chain -> `eth_` on chainId `100` -> `eth:100`
-- Near Mainnet -> `near:mainnet`
-- Solana Mainnet -> `solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp`
-- Tenderly-like on Ethereum Mainnet -> `tenderly_` on chainId `1` -> `tenderly:1`
-
-e.g. `eth:1,tenderly:1` 
-
 #### `SIGNALER_URL_LIST` (recommended)
 
 A comma-separated list of signaler url in order to publish your node there and be on the market
@@ -163,6 +150,19 @@ e.g. `https://myrpc.example.com` or `https://something.onrender.com`
 The public url for contacting your node over WebSocket
 
 e.g. `wss://myrpc.example.com` or `wss://something.onrender.com`
+
+#### `SIGNALED_PROTOCOL_LIST` (recommended)
+
+A comma-separated list of JSON-RPC protocols that your endpoint supports
+
+This is usually the RPC method prefix, like
+- Ethereum Mainnet -> `eth_` on chainId `1` -> `eth:1`
+- Gnosis chain -> `eth_` on chainId `100` -> `eth:100`
+- Near Mainnet -> `near:mainnet`
+- Solana Mainnet -> `solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp`
+- Tenderly-like on Ethereum Mainnet -> `tenderly_` on chainId `1` -> `tenderly:1`
+
+e.g. `eth:1,tenderly:1` 
 
 ## Protocol
 

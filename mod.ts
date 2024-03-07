@@ -17,52 +17,52 @@ export async function main(prefix = "") {
     SIGNALER_URL_LIST = Deno.env.get(prefix + "SIGNALER_URL_LIST"),
     SIGNALED_WS_URL = Deno.env.get(prefix + "SIGNALED_WS_URL"),
     SIGNALED_HTTP_URL = Deno.env.get(prefix + "SIGNALED_HTTP_URL"),
+    SIGNALED_PROTOCOL_LIST = Deno.env.get(prefix + "SIGNALED_PROTOCOL_LIST"),
 
     ENDPOINT_WS_URL = Deno.env.get(prefix + "ENDPOINT_WS_URL"),
     ENDPOINT_HTTP_URL = Deno.env.get(prefix + "ENDPOINT_HTTP_URL"),
-    ENDPOINT_PROTOCOL_LIST = Deno.env.get(prefix + "ENDPOINT_PROTOCOL_LIST"),
 
     PRIVATE_KEY_ZERO_HEX = Deno.env.get(prefix + "PRIVATE_KEY_ZERO_HEX"),
   } = await Dotenv.load({ envPath, examplePath: null })
 
-  if (SIGNALER_URL_LIST == null)
-    throw new Error("SIGNALER_URL_LIST is not set")
   if (SIGNALED_WS_URL != null && ENDPOINT_WS_URL == null)
     throw new Error("SIGNALED_WS_URL is set but ENDPOINT_WS_URL is not set")
   if (SIGNALED_HTTP_URL != null && ENDPOINT_HTTP_URL == null)
     throw new Error("SIGNALED_HTTP_URL is set but ENDPOINT_HTTP_URL is not set")
-  if (ENDPOINT_PROTOCOL_LIST == null)
-    throw new Error("ENDPOINT_PROTOCOL_LIST is not set")
   if (PRIVATE_KEY_ZERO_HEX == null)
     throw new Error("PRIVATE_KEY_ZERO_HEX is not set")
 
-  const signalerUrlList = SIGNALER_URL_LIST.split(",")
+  const [signalerUrlList = []] = [SIGNALER_URL_LIST?.split(",")]
+
   const signaledWsUrl = SIGNALED_WS_URL
   const signaledHttpUrl = SIGNALED_HTTP_URL
 
+  const [signaledProtocolList = []] = [SIGNALED_PROTOCOL_LIST?.split(",")]
+
   const endpointWsUrl = ENDPOINT_WS_URL
   const endpointHttpUrl = ENDPOINT_HTTP_URL
-  const endpointProtocolList = ENDPOINT_PROTOCOL_LIST.split(",")
 
   const privateKeyZeroHex = PRIVATE_KEY_ZERO_HEX
 
-  return await serve({ signalerUrlList, signaledWsUrl, signaledHttpUrl, endpointWsUrl, endpointHttpUrl, endpointProtocolList, privateKeyZeroHex })
+  return await serve({ signalerUrlList, signaledWsUrl, signaledHttpUrl, endpointWsUrl, endpointHttpUrl, signaledProtocolList, privateKeyZeroHex })
 }
 
 export interface ServerParams {
   readonly signalerUrlList: string[],
+
   readonly signaledWsUrl?: string,
   readonly signaledHttpUrl?: string,
 
+  readonly signaledProtocolList: string[],
+
   readonly endpointWsUrl?: string,
   readonly endpointHttpUrl?: string,
-  readonly endpointProtocolList: string[],
 
   readonly privateKeyZeroHex: string,
 }
 
 export async function serve(params: ServerParams) {
-  const { signalerUrlList, signaledWsUrl, signaledHttpUrl, endpointWsUrl, endpointHttpUrl, endpointProtocolList, privateKeyZeroHex } = params
+  const { signalerUrlList, signaledWsUrl, signaledHttpUrl, endpointWsUrl, endpointHttpUrl, signaledProtocolList, privateKeyZeroHex } = params
 
   await initBundledOnce()
 
@@ -370,14 +370,14 @@ export async function serve(params: ServerParams) {
 
     if (signaledWsUrl != null)
       signaler.signal(crypto.randomUUID(), {
-        protocols: [`wss:string:json-rpc:net`, ...endpointProtocolList.map(proto => `wss:string:json-rpc:pay-by-char:(pay-by-char|${proto})`)],
+        protocols: [`wss:string:json-rpc:net`, ...signaledProtocolList.map(proto => `wss:string:json-rpc:pay-by-char:(pay-by-char|${proto})`)],
         location: signaledWsUrl,
         price: 1n.toString()
       }).catch(console.warn)
 
     if (signaledHttpUrl != null)
       signaler.signal(crypto.randomUUID(), {
-        protocols: [`https:json-rpc:net`, ...endpointProtocolList.map(proto => `https:json-rpc:(pay-by-char|${proto})`)],
+        protocols: [`https:json-rpc:net`, ...signaledProtocolList.map(proto => `https:json-rpc:(pay-by-char|${proto})`)],
         location: signaledHttpUrl,
         price: 1n.toString()
       }).catch(console.warn)
