@@ -152,13 +152,13 @@ This is usually a `wss:` url
 
 e.g. `wss://signal.node0.hazae41.me`
 
-#### `SIGNALED_HTTP_URL` (required if you want to support HTTP)
+#### `SIGNALED_HTTP_URL` (recommended)
 
 The public url for contacting your node over HTTP(S)
 
 e.g. `https://myrpc.example.com` or `https://something.onrender.com`
 
-#### `SIGNALED_WS_URL` (required if you want to support WebSocket)
+#### `SIGNALED_WS_URL` (recommended)
 
 The public url for contacting your node over WebSocket
 
