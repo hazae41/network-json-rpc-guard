@@ -370,7 +370,7 @@ export async function serve(params: ServerParams) {
 
     if (signaledWsUrl != null)
       signaler.signal(crypto.randomUUID(), {
-        protocols: [`wss:string:json-rpc:net`, ...signaledProtocolList.map(proto => `wss:string:json-rpc:pay-by-char:(pay-by-char|${proto})`)],
+        protocols: [`wss:string:json-rpc:net`, ...signaledProtocolList.map(proto => `wss:string:json-rpc:(pay-by-char|${proto})`)],
         location: signaledWsUrl,
         price: 1n.toString()
       }).catch(console.warn)
