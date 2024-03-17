@@ -210,8 +210,10 @@ export async function serve(params: ServerParams) {
       if (valueBigInt < minimumBigInt)
         throw new RpcInvalidParamsError()
 
+      const addedBigInt = valueBigInt - minimumBigInt
+
       const [balanceBigInt = 0n] = [balanceByUuid.get(session)]
-      balanceByUuid.set(session, balanceBigInt + valueBigInt)
+      balanceByUuid.set(session, balanceBigInt + addedBigInt)
 
       console.log(`Received ${valueBigInt.toString()} wei`)
 
@@ -225,7 +227,7 @@ export async function serve(params: ServerParams) {
         pendingTotalValueBigInt = 0n
       }
 
-      return valueBigInt.toString()
+      return addedBigInt.toString()
     }
 
     if (request.headers.get("upgrade") !== "websocket") {
